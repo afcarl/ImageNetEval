@@ -15,6 +15,7 @@ from keras.models import Sequential
 from keras.layers.core import Dense
 from keras.optimizers import SGD
 
+from scipy.io import loadmat
 
 import pickle as pkl
 
@@ -22,8 +23,16 @@ import random
 
 from NeuralModels.convnets import convnet, preprocess_image_batch
 
-convnet = convnet('vgg_16',
-                  weights_path="../NeuralModels/weights/vgg16_weights.h5")
+
+synsets = loadmat("meta_clsloc.mat")["synsets"][0][:1000]
+synsets = sorted([(int(s[0]), str(s[1][0])) for s in synsets], key=lambda v:v[1])
+corr = {}
+for i in range(1,1001):
+    corr[i] = next(j for j in range(1000) if synsets[j][0] == i)
+
+    
+convnet = convnet('alexnet',
+                  weights_path="../NeuralModels/weights/alexnet_weights.h5")
 sgd = SGD(lr=1., decay=1e-6, momentum=0.9, nesterov=True)
 convnet.compile(optimizer=sgd, loss='categorical_crossentropy')
 
@@ -32,7 +41,7 @@ convnet.compile(optimizer=sgd, loss='categorical_crossentropy')
 y_test = []
 with open("ILSVRC2014_clsloc_validation_ground_truth.txt") as f:
     for line in f:
-        y_test.append(int(line)-1)
+        y_test.append(corr[int(line)])
 
         
 
@@ -50,28 +59,6 @@ def generator_batch(path_img,ground_truth,batch_size=16):
         yield X_test,Y_test
         i+=1
 
-
-
-gen = generator_batch("/mnt/data/lblier/ImageNet/",
-                      y_test,
-                      batch_size=16)
-
-# i = 0
-# out = []
-# truth = []
-# while i < 500:
-#     print i
-#     X,Y = next(gen)
-#     out.append(convnet.predict(X))
-#     truth.append(Y)
-#     i+=1
-
-# out = np.vstack(out)
-# classif = out.argmax(axis=1)
-
-# arr_class = [[] for i in range(1000)]
-# for i in range(int(classif.shape)):
-#     arr_class[classif[i]].append(i)
 
     
 
